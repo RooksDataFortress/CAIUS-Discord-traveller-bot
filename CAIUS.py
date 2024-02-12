@@ -50,7 +50,7 @@ client = MyClient(intents=intents)
 
 @client.event
 async def on_ready():
-    print('Black ice online! Instance ID is {0.user}'.format(client))
+    print('Computer core operational! Shard Identity is is {0.user}'.format(client))
     print('------')
 
 @client.tree.command()
