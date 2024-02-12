@@ -91,5 +91,28 @@ async def jumpmap(interaction: discord.Interaction, worldname: str):
     jumpembed = discord.Embed(color=jumpembed_colour, title=jumpembed_title, description=f'')   
     jumpembed.add_field(name="Map data" , value=jumpmapimg, inline=False)
     await interaction.response.send_message(embed=jumpembed)
-    
+
+@client.tree.command()
+async def freerooms(interaction: discord.Interaction):
+    #Check if the user has the required role
+    required_role_name = "Administrator"
+    required_role = discord.utils.get(interaction.guild.roles, name=required_role_name)
+    if required_role in interaction.user.roles:
+        #User has the required role, proceed with the command
+        rooms_title = "Passenger positions available!"
+        rooms_colour = 0x055FFF
+        roomsembed = discord.Embed(color=rooms_colour, title=rooms_title, description=f'I have crunched the numbers and we have the following room vacancies for the upcoming leg of the journey.')
+        availhigh = (random.randint(2,12))
+        roomsembed.add_field(name="High rooms available:" , value=availhigh, inline=False)
+        availstan = (random.randint(2,200))
+        roomsembed.add_field(name="Standard rooms available:" , value=availstan, inline=False)
+        availbasic = (random.randint(3,300))
+        roomsembed.add_field(name="Basic passage available:" , value=availbasic, inline=False)
+        availlow = (random.randint(2,100))
+        roomsembed.add_field(name="Low berths available:" , value=availlow, inline=False)
+        await interaction.response.send_message(embed=roomsembed)
+    else:
+        #User does not have the required role, send a message indicating access denied
+        await interaction.response.send_message("Error: You lack staff access to use that function.")
+
 client.run(token)

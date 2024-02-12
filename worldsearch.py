@@ -1,10 +1,12 @@
 import requests
 import json
 from uwpdata import *
+from sectordata import *
 print("Worldsearch test")
-secdata = requests.get("https://travellermap.com/api/sec?sector=Spinward Marches")
-secdatare = requests.get("https://travellermap.com/api/metadata?sector=Spinward%20Marches")
-worldtest = requests.get("https://travellermap.com/api/search?q=Glisten")
+#secdata = requests.get("https://travellermap.com/api/sec?sector=Spinward Marches")
+#secdatare = requests.get("https://travellermap.com/api/metadata?sector=Spinward%20Marches")
+worldtest = requests.get("https://travellermap.com/api/search?q=Zeycude")
+sectortest = requests.get("https://travellermap.com/api/sec?sector=Spinward%20Marches&type=SecondSurvey&metadata=0")
 #print(secdata.json())
 #print(secdatare.json())
 worlddata = worldtest.json()
@@ -13,6 +15,8 @@ uwp_value = items[0].get("World", {}).get("Uwp")
 hexx = items[0].get("World", {}).get("HexX")
 hexy = items[0].get("World", {}).get("HexY")
 coords = (f'{hexx}{hexy}')
+hcoords = (f'h{coords}')
+hcoordszone = globals()[hcoords]
 #print(worldtest.json())
 #print(uwp_value)
 #print(f"The starport is rated ", uwp_value[0])
@@ -38,6 +42,14 @@ coords = (f'{hexx}{hexy}')
 #print (population)
 #print (laws)
 #print (tl)
-print(worlddata)
-jumpmapimg = (f'https://travellermap.com/api/jumpmap?sector=spin&hex={coords}&jump=4&scale=120&')
-print("Image for jump map is", jumpmapimg)
+#print(coords)
+ 
+print (hcoords)
+print (hcoordszone[1])
+print ("system at", {hcoords}, " is zone", hcoordszone[1])
+
+#print(worlddata)
+#jumpmapimg = (f'https://travellermap.com/api/jumpmap?sector=spin&hex={coords}&jump=4&scale=120&')
+#jumpmapv2 = requests.get(f'https://travellermap.com/api/jumpmap?sector=spin&hex={coords}&jump=4&scale=120&'), headers={"Accept":"image"})
+#print (jumpmapv2)
+#print("Image for jump map is", jumpmapimg)
