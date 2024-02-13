@@ -5,7 +5,7 @@ from sectordata import *
 print("Worldsearch test")
 #secdata = requests.get("https://travellermap.com/api/sec?sector=Spinward Marches")
 #secdatare = requests.get("https://travellermap.com/api/metadata?sector=Spinward%20Marches")
-worldtest = requests.get("https://travellermap.com/api/search?q=Zeycude")
+worldtest = requests.get("https://travellermap.com/api/search?q=Wardn")
 sectortest = requests.get("https://travellermap.com/api/sec?sector=Spinward%20Marches&type=SecondSurvey&metadata=0")
 #print(secdata.json())
 #print(secdatare.json())
@@ -45,7 +45,13 @@ hcoordszone = globals()[hcoords]
 #print(coords)
  
 print (hcoords)
-print (hcoordszone[1])
+destzone = (hcoordszone[1])
+if destzone == "A":
+    print ("Destination zone is Amber")
+elif destzone == "R":
+    print ("Destination zone is Red")
+else:
+    print ("No zone data detected.")
 print ("system at", {hcoords}, " is zone", hcoordszone[1])
 
 #print(worlddata)

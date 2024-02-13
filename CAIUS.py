@@ -9,6 +9,7 @@ import requests
 import json
 from uwpdata import *
 import wget
+from sectordata import *
 
 token = os.getenv("token")
 new_line = '\n'
@@ -50,7 +51,7 @@ async def worldsearch(interaction: discord.Interaction, worldname: str):
     worldembed_title = f"Databse entry for {worldname}"
     worldembed_colour = 0x055FFF
 
-    worldapisearch = requests.get(f"https://travellermap.com/api/search?q={worldname}")
+    worldapisearch = requests.get(f"https://travellermap.com/api/search?q={worldname} in:spin")
     worlddata = worldapisearch.json()
     items = worlddata.get("Results", {}).get("Items", [])
     uwp_value = items[0].get("World", {}).get("Uwp")
@@ -81,7 +82,7 @@ async def jumpmap(interaction: discord.Interaction, worldname: str):
     jumpembed_title = f"Jump 4 map for: {worldname}"
     jumpembed_colour = 0x055FFF 
 
-    worldapisearch = requests.get(f"https://travellermap.com/api/search?q={worldname}")
+    worldapisearch = requests.get(f"https://travellermap.com/api/search?q={worldname} in:spin")
     worlddata = worldapisearch.json()
     items = worlddata.get("Results", {}).get("Items", [])
     hexx = items[0].get("World", {}).get("HexX")
@@ -93,7 +94,7 @@ async def jumpmap(interaction: discord.Interaction, worldname: str):
     await interaction.response.send_message(embed=jumpembed)
 
 @client.tree.command()
-async def freerooms(interaction: discord.Interaction):
+async def passengerrooms(interaction: discord.Interaction):
     #Check if the user has the required role
     required_role_name = "Administrator"
     required_role = discord.utils.get(interaction.guild.roles, name=required_role_name)
@@ -111,6 +112,118 @@ async def freerooms(interaction: discord.Interaction):
         availlow = (random.randint(2,100))
         roomsembed.add_field(name="Low berths available:" , value=availlow, inline=False)
         await interaction.response.send_message(embed=roomsembed)
+    else:
+        #User does not have the required role, send a message indicating access denied
+        await interaction.response.send_message("Error: You lack staff access to use that function.")
+
+@client.tree.command()
+@app_commands.describe(source_system='System to depart from.')
+@app_commands.describe(destination_system='System to travel to.')
+async def passengerdms(interaction: discord.Interaction, source_system: str,  destination_system: str):
+    #Check if the user has the required role
+    required_role_name = "Administrator"
+    required_role = discord.utils.get(interaction.guild.roles, name=required_role_name)
+    if required_role in interaction.user.roles:
+        #User has the required role, proceed with the command
+        paxdmembed_title = f"Calculating passenger potential outlook from {source_system} to {destination_system}"
+        paxdmembed_colour = 0x055FFF 
+        paxdmembed = discord.Embed(color=paxdmembed_colour, title=paxdmembed_title, description=f'__**Contributing factors found:**__')   
+
+        #source world discovery
+        srcworldapi = requests.get(f'https://travellermap.com/api/search?q={source_system} in:spin')
+        srcdata = srcworldapi.json()
+        src_items = srcdata.get("Results", {}).get("Items", [])
+        src_uwp_value = src_items[0].get("World", {}).get("Uwp")
+        src_hexx = src_items[0].get("World", {}).get("HexX")
+        src_hexy = src_items[0].get("World", {}).get("HexY")
+        src_coords = (f'{src_hexx}{src_hexy}')
+        src_hcoords = (f'h{src_coords}')
+        src_hcoordssearch = globals()[src_hcoords]
+        #destination world discovery
+
+        destworldapi = requests.get(f'https://travellermap.com/api/search?q={destination_system} in:spin')
+        destdata = destworldapi.json()
+        dest_items = destdata.get("Results", {}).get("Items", [])
+        dest_uwp_value = dest_items[0].get("World", {}).get("Uwp")
+        dest_hexx = dest_items[0].get("World", {}).get("HexX")
+        dest_hexy = dest_items[0].get("World", {}).get("HexY")
+        dest_coords = (f'{dest_hexx}{dest_hexy}')
+        dest_hcoords = (f'h{dest_coords}')
+        dest_hcoordssearch = globals()[dest_hcoords]
+
+        #Set default DM modifier
+        dmmod = 0
+
+        src_zone = (src_hcoordssearch[1])
+        src_starport = (src_uwp_value[0])
+        src_population = (src_uwp_value[4])
+        dest_zone = (dest_hcoordssearch[1])
+        dest_starport = (dest_uwp_value[0])
+        dest_population = (dest_uwp_value[4])
+
+        if src_population in ('0', '1'):
+            paxdmembed.add_field(name="Source population" , value=(f'There is barely anyone living in {src_hcoordssearch[0]}, this will be a tricky sell.'), inline=False)
+            dmmod = (dmmod-4)
+        elif src_population in ('6', '7'):
+            paxdmembed.add_field(name="Source population" , value=(f'{src_hcoordssearch[0]} is fairly populated, that should help.'), inline=False)
+            dmmod = (dmmod+1)
+        elif src_population in ('8', '9', 'A', 'B', 'C'):
+            paxdmembed.add_field(name="Source population" , value=(f'{src_hcoordssearch[0]} is jam packed! This should be a breeze.'), inline=False)
+            dmmod = (dmmod+3)
+
+        if src_starport == 'A':
+            paxdmembed.add_field(name="Source Starport" , value=(f'We are in an amazing starport at {src_hcoordssearch[0]}, there are plenty of oppotunities to sell.'), inline=False) 
+            dmmod = (dmmod+2)
+        if src_starport == 'B':
+            paxdmembed.add_field(name="Source Starport" , value=(f'The starport here at {src_hcoordssearch[0]} is pretty good, we can work with this.'), inline=False) 
+            dmmod = (dmmod+1)
+        if src_starport == 'E':
+            paxdmembed.add_field(name="Source Starport" , value=(f'The awful starport at {src_hcoordssearch[0]} isn\'t helping our situation..'), inline=False) 
+            dmmod = (dmmod-1)
+        if src_starport == 'X':
+            paxdmembed.add_field(name="Source Starport" , value=(f'There isnt even a starport at {src_hcoordssearch[0]}. Where exactly are we meant to be departing from?!'), inline=False) 
+            dmmod = (dmmod-3)
+
+        if src_zone == 'A':
+            paxdmembed.add_field(name="Source Zone" , value=(f'{src_hcoordssearch[0]} is marked as an amber zone, there is a high demand to get out of here.'), inline=False) 
+            dmmod = (dmmod+1)
+        if src_zone == 'R':
+            paxdmembed.add_field(name="Source Zone" , value=(f'{src_hcoordssearch[0]} is a red zoned system under an interdiction, passengers arent even meant to be here!'), inline=False)         
+            dmmod = (dmmod-4)
+
+        if dest_population in ('0', '1'):
+            paxdmembed.add_field(name="Destination population" , value=(f'There is barely anyone living in {dest_hcoordssearch[0]}, this will be a tricky sell.'), inline=False)
+            dmmod = (dmmod-4)
+        elif dest_population in ('6', '7'):
+            paxdmembed.add_field(name="Destination population" , value=(f'{dest_hcoordssearch[0]} is fairly populated, that should help.'), inline=False)        
+            dmmod = (dmmod+1)
+        elif dest_population in ('8', '9', 'A', 'B', 'C'):
+            paxdmembed.add_field(name="Destination population" , value=(f'{dest_hcoordssearch[0]} is jam packed! This should be a breeze.'), inline=False)        
+            dmmod = (dmmod+3)
+
+        if dest_starport == 'A':
+            paxdmembed.add_field(name="Destination Starport" , value=(f'Amazing facilities in {dest_hcoordssearch[0]}, there are plenty of oppotunities to sell.'), inline=False)
+            dmmod = (dmmod+2)
+        if dest_starport == 'B':
+            paxdmembed.add_field(name="Destination Starport" , value=(f'The starport over in {dest_hcoordssearch[0]} is pretty good, we can work with this.'), inline=False)
+            dmmod = (dmmod+1)
+        if dest_starport == 'E':
+            paxdmembed.add_field(name="Destination Starport" , value=(f'The awful starport at {dest_hcoordssearch[0]} isn\'t helping our situation..'), inline=False)
+            dmmod = (dmmod-1)
+        if dest_starport == 'X':
+            paxdmembed.add_field(name="Destination Starport" , value=(f'There isnt even a starport at {dest_hcoordssearch[0]}. Where exactly are we meant to be dropping them off?!'), inline=False)
+            dmmod = (dmmod-3)
+        if dest_zone == 'A':
+            paxdmembed.add_field(name="Destination Zone" , value=(f'{dest_hcoordssearch[0]} is marked as an amber zone, there is a higher demand to get there.'), inline=False)
+            dmmod = (dmmod+1)
+        if dest_zone == 'R':
+            paxdmembed.add_field(name="Destination Zone" , value=(f'{dest_hcoordssearch[0]} is a red zoned system under an interdiction, passengers arent even meant to go there!'), inline=False)
+            dmmod = (dmmod-4)
+
+        paxdmembed.add_field(name="High Passage outlook" , value=(f'DM for high passengers is {dmmod-4}'), inline=False)
+        paxdmembed.add_field(name="Standard/Basic Passage outlook" , value=(f'DM for standard and basic passengers is {dmmod}'), inline=False)
+        paxdmembed.add_field(name="Low Passage outlook" , value=(f'DM for low passengers is {dmmod+1}'), inline=False)
+        await interaction.response.send_message(embed=paxdmembed)    
     else:
         #User does not have the required role, send a message indicating access denied
         await interaction.response.send_message("Error: You lack staff access to use that function.")
