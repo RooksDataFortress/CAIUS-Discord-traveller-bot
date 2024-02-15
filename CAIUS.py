@@ -225,7 +225,7 @@ async def passengerdms(interaction: discord.Interaction, source_system: str,  de
             dmmod = (dmmod+3)
 
         if dest_starport == 'A':
-            destfac = (destfac + f'- Amazing facilities in {dest_hcoordssearch[0]}, there are plenty of oppotunities to sell.')  
+            destfac = (destfac + f'- Amazing facilities in {dest_hcoordssearch[0]}, there are plenty of oppotunities to sell.{new_line}')  
             dmmod = (dmmod+2)
         if dest_starport == 'B':
             destfac = (destfac + f'- The starport over in {dest_hcoordssearch[0]} is pretty good, we can work with this.{new_line}')  
