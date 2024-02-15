@@ -79,19 +79,11 @@ async def worldsearch(interaction: discord.Interaction, worldname: str):
 @client.tree.command()
 @app_commands.describe(worldname='Desired world name to search in the database.')
 async def jumpmap(interaction: discord.Interaction, worldname: str):
-    jumpembed_title = f"Jump 4 map for: {worldname}"
-    jumpembed_colour = 0x055FFF 
-
-    worldapisearch = requests.get(f"https://travellermap.com/api/search?q={worldname} in:spin")
-    worlddata = worldapisearch.json()
-    items = worlddata.get("Results", {}).get("Items", [])
-    hexx = items[0].get("World", {}).get("HexX")
-    hexy = items[0].get("World", {}).get("HexY")
-    coords = (f'{hexx}{hexy}')
-    jumpmapimg = (f'https://travellermap.com/api/jumpmap?sector=spin&hex={coords}&jump=4&scale=120&.png')
-    jumpembed = discord.Embed(color=jumpembed_colour, title=jumpembed_title, description=f'')   
-    jumpembed.add_field(name="Map data" , value=jumpmapimg, inline=False)
-    await interaction.response.send_message(embed=jumpembed)
+    worldfile = (worldname + ".png")
+    file = discord.File(f'D:\DEV-local\CAIUS-Discord-traveller-bot\maps\{worldfile}', filename='map.png')
+    embed = discord.Embed()
+    embed.set_image(url="attachment://image.png")
+    await interaction.response.send_message(file=file)
 
 @client.tree.command()
 async def passengerrooms(interaction: discord.Interaction):
@@ -116,22 +108,40 @@ async def passengerrooms(interaction: discord.Interaction):
         #User does not have the required role, send a message indicating access denied
         await interaction.response.send_message("Error: You lack staff access to use that function.")
 
-#@client.tree.command()
-#async def investevent(interaction: discord.Interaction):
-#    #Check if the user has the required role
-#    required_role_name = "Administrator"
-#    required_role = discord.utils.get(interaction.guild.roles, name=required_role_name)
-#    if required_role in interaction.user.roles:
-#        #User has the required role, proceed with the command
-#        embed_title = ""
-#        embed_colour = 0x055FFF
-#        embed = discord.Embed(color=embed_colour, title=embed_title, description=f'')
-#        availhigh = (random.randint(2,12))
-#        embed.add_field(name="" , value=availlow, inline=False)
-#        await interaction.response.send_message(embed=embed)
-#    else:
-#        #User does not have the required role, send a message indicating access denied
-#        await interaction.response.send_message("Error: You lack staff access to use that function.")
+@client.tree.command()
+async def investevent(interaction: discord.Interaction):
+    #Check if the user has the required role
+    required_role_name = "Administrator"
+    required_role = discord.utils.get(interaction.guild.roles, name=required_role_name)
+    if required_role in interaction.user.roles:
+        #User has the required role, proceed with the command
+        die1 = random.randint(1,6)
+        die2 = (random.randint(1,6)+random.randint(1,6))
+        events = {
+            2: ["📉 Catastrophe! 📉", f'Natural disaster wipes {die2*10}% from the value of an estate or property. If this reduces it to zero the holding is utterly destroyed.'],
+            3: ["📉 Market Crash! 📉", f'All the businesses, pensions, stipends and stocks in a portfolio lose {die1*10}% of their value.'],
+            4: ["📉 Military Posturing 📉", f'An impending war threatens the material basis of one of a portfolios financial assets, which loses {die1*10}% from its value.'],
+            5: ["📉 Insider trading 📉", "Accusations of improper procedures causes the loss of a months income from one financial asset in the portfolio."],
+            6: ["📉 Markets Fall 📉", f'All portfolio income lowered by 10% for a month.'],
+            7: ["Markets stable", "Nothing occurs."],
+            8: ["📈 Markets rise 📈", f'All portfolio income raised by 10% for a month.'],
+            9: ["📈 Bonus Dividends 📈", f'A bumper payout doubles the monthly income of one financial asset in the portfolio.'],
+            10: ["📈 Tax Restructuring 📈", f'The revision of a law category allows one of a portfolios financial assets, to gain {die1*10}% to its value.'],
+            11: ["📈 Market Boom! 📈", f'All the businessses, pensions, stipends and stocks in a portfolio gain {die1*10}% of their value.'],
+            12: ["📈 Trendy! 📈", f'The produce of an estate or location of a property suddenly becomes fashionable, raising the value of the holding by {die2*10}%.']
+        }
+        eventroll = (random.randint(1,6)+random.randint(1,6))
+        event = events[eventroll]
+        die1 = random.randint(1,6)
+        die2 = (random.randint(1,6)+random.randint(1,6))
+        embed_title = "Investment event!"
+        embed_colour = 0x055FFF
+        embed = discord.Embed(color=embed_colour, title=embed_title, description=f'Good luck investor!')
+        embed.add_field(name=event[0] , value=event[1], inline=False)
+        await interaction.response.send_message(embed=embed)
+    else:
+        #User does not have the required role, send a message indicating access denied
+        await interaction.response.send_message("Error: You lack staff access to use that function.")
 
 @client.tree.command()
 @app_commands.describe(source_system='System to depart from.')
