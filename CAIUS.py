@@ -10,6 +10,7 @@ import json
 from uwpdata import *
 import wget
 from sectordata import *
+from tradecalc import *
 
 token = os.getenv("token")
 new_line = '\n'
@@ -260,6 +261,134 @@ async def passengerdms(interaction: discord.Interaction, source_system: str,  de
         paxdmembed.add_field(name=(f'Standard/Basic DM'), inline=True , value=f"> {dmmod}")
         paxdmembed.add_field(name=(f'Low DM'), inline=True , value=f"> {dmmod+1}")
         await interaction.response.send_message(embed=paxdmembed)    
+    else:
+        #User does not have the required role, send a message indicating access denied
+        await interaction.response.send_message("Error: You lack staff access to use that function.")
+
+@client.tree.command()
+@app_commands.describe(system='Desired system to trade in.')
+async def tradestock(interaction: discord.Interaction, system: str):
+    #Check if the user has the required role
+    required_role_name = "Administrator"
+    required_role = discord.utils.get(interaction.guild.roles, name=required_role_name)
+    if required_role in interaction.user.roles:
+        #User has the required role, proceed with the command
+
+        #define embed
+        embed_title = f'Available trade goods in {system}'
+        embed_colour = 0x055FFF
+        embed = discord.Embed(color=embed_colour, title=embed_title, description="")
+        
+        #get system zone and trade coee data
+        tradesystem = requests.get(f'https://travellermap.com/api/search?q={system} in:spin')
+        tradedata = tradesystem.json()
+        items = tradedata.get("Results", {}).get("Items", [])
+        hexx = items[0].get("World", {}).get("HexX")
+        hexy = items[0].get("World", {}).get("HexY")
+        coords = (f'{hexx}{hexy}')
+        hcoords = (f'h{coords}')
+        hcoordszone = globals()[hcoords]
+        remarks = (hcoordszone[3])
+
+        #Add the common goods
+        goodsname = ""
+        goodsamount = ""
+        goodscost = ""
+        for x in commongoods:
+            goodsname = (goodsname + f'{x[0]}{new_line}')
+            goodsamount = (goodsamount + f'{x[1]}{new_line}')
+            goodscost = (goodscost + f'{x[2]}{new_line}') 
+
+        
+        for x in tradegoods:
+            availcodes = x[3].split()
+            commoncodes = set(syscodes) & set(availcodes)
+            if commoncodes:
+                goodsname = (goodsname + f'{x[0]}{new_line}')
+                goodsamount = (goodsamount + f'{x[1]}{new_line}')
+                goodscost = (goodscost + f'{x[2]}{new_line}') 
+
+        randgoodscount = random.randint(1,6)
+        randgoods = tuple(random.sample(allgoods, randgoodscount))
+        for x in randgoods:
+            goodsname = (goodsname + f'{x[0]}{new_line}')
+            goodsamount = (goodsamount + f'{x[1]}{new_line}')
+            goodscost = (goodscost + f'{x[2]}{new_line}') 
+        embed.add_field(name=(f'Good type'), inline=True , value=goodsname)
+        embed.add_field(name=(f'Tons available'), inline=True , value=goodsamount)
+        embed.add_field(name=(f'Base Price (Cr)'), inline=True , value=goodscost)
+        await interaction.response.send_message(embed=embed)
+    else:
+        #User does not have the required role, send a message indicating access denied
+        await interaction.response.send_message("Error: You lack staff access to use that function.")
+    
+@client.tree.command()
+@app_commands.describe(system='Desired system to trade in.')
+async def tradedms(interaction: discord.Interaction, system: str):
+    #Check if the user has the required role
+    required_role_name = "Administrator"
+    required_role = discord.utils.get(interaction.guild.roles, name=required_role_name)
+    if required_role in interaction.user.roles:
+        #User has the required role, proceed with the command
+
+        #define embed
+        embed_title = f'Difficulty to trade in {system}'
+        embed_colour = 0x055FFF
+        embed = discord.Embed(color=embed_colour, title=embed_title, description="")
+        
+        #get system zone and trade coee data
+        tradesystem = requests.get(f'https://travellermap.com/api/search?q={system} in:spin')
+        tradedata = tradesystem.json()
+        items = tradedata.get("Results", {}).get("Items", [])
+        hexx = items[0].get("World", {}).get("HexX")
+        hexy = items[0].get("World", {}).get("HexY")
+        coords = (f'{hexx}{hexy}')
+        hcoords = (f'h{coords}')
+        hcoordszone = globals()[hcoords]
+        destzone = (hcoordszone[1])
+        tradezone = ""
+        remarks = (hcoordszone[3])
+        if destzone == "A":
+            tradezone = "Amber"
+            remarks += " za"
+            print ("zone is amber")
+        elif destzone == "R":
+            tradezone = "Red"
+            remarks += " zr"
+            print ("zone is red")
+        else:
+            tradezone = "Normal"
+
+        goodsname = ""
+        goodsbuydm = ""
+        goodsselldm = ""
+
+        for good, mods in zip(commongoods, goodmods):
+            total_modifier = 0
+        
+            #Iterate over each system code for this type of good
+            for code in remarks.split():
+                if code in mods:
+                    total_modifier += mods[code]
+            goodsname = (goodsname + f'{good[0]}{new_line}')
+            goodsbuydm = (goodsbuydm + f'{total_modifier}{new_line}')     
+            goodsselldm = (goodsselldm + f'{(total_modifier*-1)}{new_line}')    
+        
+        for good, mods in zip(tradegoods, tradegoodsmods):
+            total_modifier = 0
+        
+            #Iterate over each system code for this type of good
+            for code in remarks.split():
+                if code in mods:
+                    total_modifier += mods[code]
+            goodsname = (goodsname + f'{good[0]}{new_line}')
+            goodsbuydm = (goodsbuydm + f'{total_modifier}{new_line}')     
+            goodsselldm = (goodsselldm + f'{(total_modifier*-1)}{new_line}')   
+
+        embed.add_field(name=(f'Good type'), inline=True , value=goodsname)
+        embed.add_field(name=(f'Buy DM'), inline=True , value=goodsbuydm)
+        embed.add_field(name=(f'Sell DM'), inline=True , value=goodsselldm)
+        await interaction.response.send_message(embed=embed)
     else:
         #User does not have the required role, send a message indicating access denied
         await interaction.response.send_message("Error: You lack staff access to use that function.")
