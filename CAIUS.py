@@ -11,11 +11,18 @@ from uwpdata import *
 import wget
 from sectordata import *
 from tradecalc import *
+import pymongo
 
+#Configure the database
+client = pymongo.MongoClient()
+db = client["wanderer-configs"]
+
+#Configure the discord token
 token = os.getenv("token")
 new_line = '\n'
 MY_GUILD = discord.Object(id=1191987404853215262)  # replace with your guild id
 
+#conifigure the discord commands and sync them locally
 class MyClient(discord.Client):
     def __init__(self, *, intents: discord.Intents):
         super().__init__(intents=intents)
@@ -85,6 +92,49 @@ async def jumpmap(interaction: discord.Interaction, worldname: str):
     embed = discord.Embed()
     embed.set_image(url="attachment://image.png")
     await interaction.response.send_message(file=file)
+
+@client.tree.command()
+@app_commands.describe(leg='Which leg of the journey we are on')
+async def db_legset(interaction: discord.Interaction, leg: str):
+    #Check if the user has the required role
+    required_role_name = "Administrator"
+    required_role = discord.utils.get(interaction.guild.roles, name=required_role_name)
+    if required_role in interaction.user.roles:
+        #User has the required role, proceed with the command
+
+        #Set db to wandererconfig
+        collection = db.wandererconfigs
+        #Define the data to be inserted or updated
+        data = {
+            "config_name": "Currentleg",
+            "Currentleg": leg,
+        }
+
+        #Update the document with the same config_name or insert if it doesn't exist
+        collection.update_one(
+            {"config_name": "Currentleg"},  # Filter criteria
+            {"$set": data},  # New values
+            upsert=True  # If document does not exist, insert it
+        )
+
+        # Find a document with a specific config_name
+        document = collection.find_one({"config_name": "Currentleg"})
+        # Check if the document exists and retrieve parameter1
+        if document:
+            legvalue = document.get("Currentleg")
+            print("Data inserted or updated successfully. New value is", legvalue)
+        else:
+            print("Document with config_name 'example_config' not found.")
+
+        #configure embed
+        embed_title = f'Database Update'
+        embed_colour = 0x055FFF
+        embed = discord.Embed(color=embed_colour, title=embed_title, description="")
+        embed.add_field(name=(f'Current journey stop no:'), inline=True , value=legvalue)
+        await interaction.response.send_message(embed=embed)
+    else:
+        #User does not have the required role, send a message indicating access denied
+        await interaction.response.send_message("Error: You lack staff access to use that function.")
 
 @client.tree.command()
 async def passengerrooms(interaction: discord.Interaction):
