@@ -137,6 +137,57 @@ async def db_legset(interaction: discord.Interaction, leg: str):
         await interaction.response.send_message("Error: You lack staff access to use that function.")
 
 @client.tree.command()
+@app_commands.describe(char='Characters first name')
+@app_commands.describe(skill='skill name and value')
+@app_commands.describe(player='players discord username')
+@app_commands.describe(check='Which leg of the journey they roll their check')
+async def train_register(interaction: discord.Interaction, char: str, skill: str, player: str, check: str):
+    #Check if the user has the required role
+    required_role_name = "Administrator"
+    required_role = discord.utils.get(interaction.guild.roles, name=required_role_name)
+    if required_role in interaction.user.roles:
+        #User has the required role, proceed with the command
+
+        #Set db to training db
+        collection = db.training
+        #Define the data to be inserted or updated
+        data = {
+            "character": char,
+            "train_skill": skill,
+            "Check leg": check,
+            "discordname": player,
+        }
+
+        #Update the document with the same config_name or insert if it doesn't exist
+        collection.update_one(
+            {"character": char},  # Filter criteria
+            {"$set": data},  # New values
+            upsert=True  # If document does not exist, insert it
+        )
+
+        # Find a document with a specific config_name
+        document = collection.find_one({"character": char})
+        # Check if the document exists and retrieve parameter1
+        if document:
+            charname = document.get("character")
+            skill = document.get("train_skill")
+            player = document.get("discordname")
+            check = document.get("Check leg")
+            print("details added:", charname, skill, player, check)
+        else:
+            print("Database error.")
+
+        #configure embed
+        embed_title = f'Database Update'
+        embed_colour = 0x055FFF
+        embed = discord.Embed(color=embed_colour, title=embed_title, description="")
+        embed.add_field(name=(f'Training details registered for'), inline=True , value=char)
+        await interaction.response.send_message(embed=embed)
+    else:
+        #User does not have the required role, send a message indicating access denied
+        await interaction.response.send_message("Error: You lack staff access to use that function.")
+
+@client.tree.command()
 async def passengerrooms(interaction: discord.Interaction):
     #Check if the user has the required role
     required_role_name = "Administrator"

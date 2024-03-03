@@ -5,19 +5,19 @@ db = client["wanderer-configs"]
 
 collection = db.wandererconfigs
 
-# Define the data to be inserted or updated
-#data = {
-#    "config_name": "Currentleg",
-#    "Currentleg": "1",
-#}
+#Define the data to be inserted or updated
+data = {
+    "config_name": "Currentleg",
+    "Currentleg": "1",
+}
 
-# Update the document with the same config_name or insert if it doesn't exist
-#collection.update_one(
-#    {"config_name": "Currentleg"},  # Filter criteria
-#    {"$set": data},  # New values
-#    upsert=True  # If document does not exist, insert it
-#)
-#print("Data inserted or updated successfully.")
+#Update the document with the same config_name or insert if it doesn't exist
+collection.update_one(
+    {"config_name": "Currentleg"},  # Filter criteria
+    {"$set": data},  # New values
+    upsert=True  # If document does not exist, insert it
+)
+print("Data inserted or updated successfully.")
 
 # Find a document with a specific config_name
 document = collection.find_one({"config_name": "Currentleg"})
