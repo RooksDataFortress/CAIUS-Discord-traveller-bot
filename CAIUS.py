@@ -136,6 +136,7 @@ async def db_legset(interaction: discord.Interaction, leg: str):
         #User does not have the required role, send a message indicating access denied
         await interaction.response.send_message("Error: You lack staff access to use that function.")
 
+#below are the commands related to training
 @client.tree.command()
 @app_commands.describe(char='Characters first name')
 @app_commands.describe(skill='skill name and value')
@@ -188,28 +189,47 @@ async def train_register(interaction: discord.Interaction, char: str, skill: str
         await interaction.response.send_message("Error: You lack staff access to use that function.")
 
 @client.tree.command()
-async def passengerrooms(interaction: discord.Interaction):
+async def train_check(interaction: discord.Interaction):
     #Check if the user has the required role
     required_role_name = "Administrator"
     required_role = discord.utils.get(interaction.guild.roles, name=required_role_name)
     if required_role in interaction.user.roles:
         #User has the required role, proceed with the command
-        rooms_title = "Passenger positions available!"
-        rooms_colour = 0x055FFF
-        roomsembed = discord.Embed(color=rooms_colour, title=rooms_title, description=f'I have crunched the numbers and we have the following room vacancies for the upcoming leg of the journey.')
-        availhigh = (random.randint(2,12))
-        roomsembed.add_field(name="High rooms available:" , value=availhigh, inline=False)
-        availstan = (random.randint(2,200))
-        roomsembed.add_field(name="Standard rooms available:" , value=availstan, inline=False)
-        availbasic = (random.randint(3,300))
-        roomsembed.add_field(name="Basic passage available:" , value=availbasic, inline=False)
-        availlow = (random.randint(2,100))
-        roomsembed.add_field(name="Low berths available:" , value=availlow, inline=False)
-        await interaction.response.send_message(embed=roomsembed)
+
+        #Set db endpoints
+        legcollection = db.wandererconfigs
+        traincollection = db.training
+
+        #Check the current leg
+        document = legcollection.find_one({"config_name": "Currentleg"})
+        currentleg = document.get("Currentleg")
+        print("Current leg from the DB is", currentleg)
+
+        trainstats = ""
+        documents = traincollection.find()
+        for document in documents:
+            leg = document.get("Check leg")
+            user = document.get("discordname")
+            skill = document.get("train_skill")
+            char = document.get("character")
+            if leg == currentleg:
+                trainstats = (trainstats + f'Congrats {char}, Its time to roll your training check for: {skill}{new_line}')
+            else:  
+                trainstats = (trainstats + f'Sorry its not your time yet {char}{new_line}')
+        #configure embed
+        embed_title = f'Staff Training status'
+        embed_colour = 0x055FFF
+        embed = discord.Embed(color=embed_colour, title=embed_title, description="")
+        embed.add_field(name=(f'Current Leg as per our database is {currentleg}'), inline=False , value=f'if incorrect, please alert administration.')
+        embed.add_field(name=(f'Staff Training status:'), inline=False , value=trainstats) 
+        embed.add_field(name=(f'Is your name missing?'), inline=False , value=f"Please register for the training program.")         
+        await interaction.response.send_message(embed=embed)
     else:
         #User does not have the required role, send a message indicating access denied
         await interaction.response.send_message("Error: You lack staff access to use that function.")
 
+
+#Below is the investment command
 @client.tree.command()
 async def investevent(interaction: discord.Interaction):
     #Check if the user has the required role
@@ -241,6 +261,30 @@ async def investevent(interaction: discord.Interaction):
         embed = discord.Embed(color=embed_colour, title=embed_title, description=f'Good luck investor!')
         embed.add_field(name=event[0] , value=event[1], inline=False)
         await interaction.response.send_message(embed=embed)
+    else:
+        #User does not have the required role, send a message indicating access denied
+        await interaction.response.send_message("Error: You lack staff access to use that function.")
+
+#Below are the commands related to passenger rooms and DM's
+@client.tree.command()
+async def passengerrooms(interaction: discord.Interaction):
+    #Check if the user has the required role
+    required_role_name = "Administrator"
+    required_role = discord.utils.get(interaction.guild.roles, name=required_role_name)
+    if required_role in interaction.user.roles:
+        #User has the required role, proceed with the command
+        rooms_title = "Passenger positions available!"
+        rooms_colour = 0x055FFF
+        roomsembed = discord.Embed(color=rooms_colour, title=rooms_title, description=f'I have crunched the numbers and we have the following room vacancies for the upcoming leg of the journey.')
+        availhigh = (random.randint(2,12))
+        roomsembed.add_field(name="High rooms available:" , value=availhigh, inline=False)
+        availstan = (random.randint(2,200))
+        roomsembed.add_field(name="Standard rooms available:" , value=availstan, inline=False)
+        availbasic = (random.randint(3,300))
+        roomsembed.add_field(name="Basic passage available:" , value=availbasic, inline=False)
+        availlow = (random.randint(2,100))
+        roomsembed.add_field(name="Low berths available:" , value=availlow, inline=False)
+        await interaction.response.send_message(embed=roomsembed)
     else:
         #User does not have the required role, send a message indicating access denied
         await interaction.response.send_message("Error: You lack staff access to use that function.")
@@ -366,6 +410,7 @@ async def passengerdms(interaction: discord.Interaction, source_system: str,  de
         #User does not have the required role, send a message indicating access denied
         await interaction.response.send_message("Error: You lack staff access to use that function.")
 
+# Below are the commands related to trading.
 @client.tree.command()
 @app_commands.describe(system='Desired system to trade in.')
 async def tradestock(interaction: discord.Interaction, system: str):

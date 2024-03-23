@@ -2,12 +2,16 @@ import pymongo
 client = pymongo.MongoClient()
 db = client["wanderer-configs"]
 
-collection = db.training
+legcollection = db.wandererconfigs
+traincollection = db.training
 
 # Print the value of the "Check leg" field for each document
-print('Current leg to check')
-currentleg = input()
-documents = collection.find()
+print('Checking leg from DB')
+# Find the entry in the collection
+document = legcollection.find_one({"config_name": "Currentleg"})
+currentleg = document.get("Currentleg")
+print("Current leg from the DB is", currentleg)
+documents = traincollection.find()
 for document in documents:
     leg = document.get("Check leg")
     user = document.get("discordname")
