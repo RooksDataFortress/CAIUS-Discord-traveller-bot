@@ -212,7 +212,7 @@ async def train_check(interaction: discord.Interaction):
             user = document.get("discordname")
             skill = document.get("train_skill")
             char = document.get("character")
-            if leg == currentleg:
+            if leg <= currentleg:
                 trainstats = (trainstats + f'Congrats {char}, Its time to roll your training check for: {skill}{new_line}')
             else:  
                 trainstats = (trainstats + f'Sorry its not your time yet {char}{new_line}')
