@@ -202,13 +202,13 @@ async def train_check(interaction: discord.Interaction):
 
         #Check the current leg
         document = legcollection.find_one({"config_name": "Currentleg"})
-        currentleg = document.get("Currentleg")
+        currentleg = int(document.get("Currentleg"))
         print("Current leg from the DB is", currentleg)
 
         trainstats = ""
         documents = traincollection.find()
         for document in documents:
-            leg = document.get("Check leg")
+            leg = int(document.get("Check leg"))
             user = document.get("discordname")
             skill = document.get("train_skill")
             char = document.get("character")
