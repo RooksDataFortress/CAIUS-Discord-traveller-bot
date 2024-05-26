@@ -229,6 +229,83 @@ async def train_check(interaction: discord.Interaction):
         await interaction.response.send_message("Error: You lack staff access to use that function.")
 
 
+@client.tree.command()
+@app_commands.describe(risk='Enter risk profile (low, significant, high, extreme, ridiculous)')
+@app_commands.describe(val='What is the value of the investment')
+@app_commands.describe(bonus='What is the total DM of the stat and skill used to manage the fund')
+async def invest(interaction: discord.Interaction, risk: str, val: str, bonus: str):
+    #Check if the user has the required role
+    required_role_name = "Administrator"
+    required_role = discord.utils.get(interaction.guild.roles, name=required_role_name)
+    if required_role in interaction.user.roles:
+    
+        #Outline the different risk profiles.
+        risk_profiles = {
+            'low': {'DC': 4, 'effect_percentage': 0.75},
+            'significant': {'DC': 6, 'effect_percentage': 1.5},
+            'high': {'DC': 8, 'effect_percentage': 2},
+            'extreme': {'DC': 10, 'effect_percentage': 3},
+            'ridiculous': {'DC': 12, 'effect_percentage': 5}
+        }
+
+        def get_risk_profile(profile_name):        
+            #Get the DC and effect percentage for a given risk profile name
+            #Args: profile_name (str): The name of the risk profile.
+            #Returns: tuple: A tuple containing the DC and effect percentage.
+            profile = risk_profiles.get(profile_name.lower())
+            if profile is not None:
+                return profile['DC'], profile['effect_percentage']
+            else:
+                raise ValueError("Invalid risk profile name. Choose from 'low', 'significant', 'high', 'extreme', 'ridiculous'.")
+
+
+        profile_name = risk
+        initial_value = float(val)
+        dm_bonus = int(bonus)
+        initial_value_rounded = round(initial_value)
+
+        DC, effect_percentage = get_risk_profile(profile_name)
+        print(f"For the {profile_name} risk profile: DC = {DC}, Effect Percentage = {effect_percentage}%")
+
+        event_die = random.randint(1, 36)
+        print(f"The event die result is {event_die}")
+
+        if event_die == 36:
+            event_status = (f"There is an event!")
+        else:
+            event_status = (f"No event this time.")
+
+        manager_roll = random.randint(1, 6) + random.randint(1, 6)
+        print(f"Management roll is {manager_roll}")
+        print(f"Roll with bonus is {manager_roll + dm_bonus}")
+
+        effect = manager_roll + dm_bonus - DC
+        print(f"Effect is {effect}")
+
+        # Calculate the impact on the investment value
+        investment_effect = initial_value * (effect_percentage / 100) * effect
+        final_investment_value = initial_value + investment_effect
+
+        # Round the final investment value to the nearest whole number
+        final_investment_value_rounded = round(final_investment_value)
+        print(f"Final investment value after applying effect: {final_investment_value_rounded}")
+
+        embed_title = "Investment Management"
+        embed_colour = 0x055FFF
+        embed = discord.Embed(color=embed_colour, title=embed_title, description=f'Investment management report')
+        embed.add_field(name=f'Current value' , value=f"{initial_value_rounded}Cr", inline=False)
+        embed.add_field(name=f'Potfolio risk' , value=initial_value_rounded, inline=True)        
+        embed.add_field(name=f'Management DM' , value=dm_bonus, inline=True)  
+        embed.add_field(name=f'New value' , value=f"{final_investment_value_rounded}Cr", inline=False)
+        embed.add_field(name=f'Investment event status' , value=event_status, inline=False)        
+        await interaction.response.send_message(embed=embed)            
+
+    else:
+        #User does not have the required role, send a message indicating access denied
+        await interaction.response.send_message("Error: You lack staff access to use that function.")
+
+
+
 #Below is the investment command
 @client.tree.command()
 async def investevent(interaction: discord.Interaction):
@@ -237,6 +314,7 @@ async def investevent(interaction: discord.Interaction):
     required_role = discord.utils.get(interaction.guild.roles, name=required_role_name)
     if required_role in interaction.user.roles:
         #User has the required role, proceed with the command
+
         die1 = random.randint(1,6)
         die2 = (random.randint(1,6)+random.randint(1,6))
         events = {
