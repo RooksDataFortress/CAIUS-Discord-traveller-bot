@@ -228,7 +228,7 @@ async def train_check(interaction: discord.Interaction):
         #User does not have the required role, send a message indicating access denied
         await interaction.response.send_message("Error: You lack staff access to use that function.")
 
-
+#The investment management and event commands
 @client.tree.command()
 @app_commands.describe(risk='Enter risk profile (low, significant, high, extreme, ridiculous)')
 @app_commands.describe(val='What is the value of the investment')
@@ -248,6 +248,7 @@ async def invest(interaction: discord.Interaction, risk: str, val: str, bonus: s
             'ridiculous': {'DC': 12, 'effect_percentage': 5}
         }
 
+        #risk profile function
         def get_risk_profile(profile_name):        
             #Get the DC and effect percentage for a given risk profile name
             #Args: profile_name (str): The name of the risk profile.
@@ -258,87 +259,104 @@ async def invest(interaction: discord.Interaction, risk: str, val: str, bonus: s
             else:
                 raise ValueError("Invalid risk profile name. Choose from 'low', 'significant', 'high', 'extreme', 'ridiculous'.")
 
-
         profile_name = risk
         initial_value = float(val)
         dm_bonus = int(bonus)
         initial_value_rounded = round(initial_value)
 
         DC, effect_percentage = get_risk_profile(profile_name)
-        print(f"For the {profile_name} risk profile: DC = {DC}, Effect Percentage = {effect_percentage}%")
 
         event_die = random.randint(1, 36)
-        print(f"The event die result is {event_die}")
 
         if event_die == 36:
             event_status = (f"There is an event!")
+            eventflag = "yes"
         else:
             event_status = (f"No event this time.")
+            eventflag = "no"
 
         manager_roll = random.randint(1, 6) + random.randint(1, 6)
-        print(f"Management roll is {manager_roll}")
-        print(f"Roll with bonus is {manager_roll + dm_bonus}")
-
         effect = manager_roll + dm_bonus - DC
-        print(f"Effect is {effect}")
 
+        if effect <= -6:
+            effectmessage = "Disastrous failure! Significant loss incurred."
+        elif -5 < effect <= -4:
+            effectmessage =  "Major setback! Considerable loss incurred."
+        elif -3 < effect <= -1:
+            effectmessage =  "Minor setback. Small loss incurred."
+        elif 0 == effect:
+            effectmessage =  "No significant change. Investment is stable."
+        elif 0 <= effect <= 5:
+            effectmessage =  "Moderate success! Noticeable gain."
+        elif  effect >= 6:
+            effectmessage =  "Outstanding success! Significant gain."
+        else:
+            effectmessage = "Syntax error"
+    
         # Calculate the impact on the investment value
         investment_effect = initial_value * (effect_percentage / 100) * effect
         final_investment_value = initial_value + investment_effect
 
         # Round the final investment value to the nearest whole number
         final_investment_value_rounded = round(final_investment_value)
-        print(f"Final investment value after applying effect: {final_investment_value_rounded}")
 
         embed_title = "Investment Management"
         embed_colour = 0x055FFF
         embed = discord.Embed(color=embed_colour, title=embed_title, description=f'Investment management report')
         embed.add_field(name=f'Current value' , value=f"{initial_value_rounded}Cr", inline=False)
-        embed.add_field(name=f'Potfolio risk' , value=initial_value_rounded, inline=True)        
+        embed.add_field(name=f'Portfolio risk' , value=risk, inline=True)        
         embed.add_field(name=f'Management DM' , value=dm_bonus, inline=True)  
+        embed.add_field(name=f'Result' , value=effectmessage, inline=False)
         embed.add_field(name=f'New value' , value=f"{final_investment_value_rounded}Cr", inline=False)
-        embed.add_field(name=f'Investment event status' , value=event_status, inline=False)        
+        embed.add_field(name=f'Investment event status' , value=event_status, inline=False)   
+
+        #event handle
+        if eventflag == "yes":
+            die1 = random.randint(1,6)
+            die2 = (random.randint(1,6)+random.randint(1,6))
+            events = {
+                2: ["📉 Catastrophe! 📉", f'Natural disaster wipes {die2*10}% from the value of an estate or property. If this reduces it to zero the holding is utterly destroyed.'],
+                3: ["📉 Market Crash! 📉", f'All the businesses, pensions, stipends and stocks in a portfolio lose {die1*10}% of their value.'],
+                4: ["📉 Military Posturing 📉", f'An impending war threatens the material basis of one of a portfolios financial assets, which loses {die1*10}% from its value.'],
+                5: ["📉 Insider trading 📉", "Accusations of improper procedures causes the loss of a months income from one financial asset in the portfolio."],
+                6: ["📉 Markets Fall 📉", f'All portfolio income lowered by 10% for a month.'],
+                7: ["Markets stable", "Nothing occurs."],
+                8: ["📈 Markets rise 📈", f'All portfolio income raised by 10% for a month.'],
+                9: ["📈 Bonus Dividends 📈", f'A bumper payout doubles the monthly income of one financial asset in the portfolio.'],
+                10: ["📈 Tax Restructuring 📈", f'The revision of a law category allows one of a portfolios financial assets, to gain {die1*10}% to its value.'],
+                11: ["📈 Market Boom! 📈", f'All the businessses, pensions, stipends and stocks in a portfolio gain {die1*10}% of their value.'],
+                12: ["📈 Trendy! 📈", f'The produce of an estate or location of a property suddenly becomes fashionable, raising the value of the holding by {die2*10}%.']
+            }
+            eventroll = (random.randint(1,6)+random.randint(1,6))
+            event = events[eventroll]
+            die1 = random.randint(1,6)
+            die2 = (random.randint(1,6)+random.randint(1,6))
+        
+            adjusted_value = final_investment_value_rounded
+            if eventroll == 2:
+                adjusted_value -= final_investment_value_rounded * (die2 * 0.1)
+            elif eventroll in [3, 4]:
+                adjusted_value -= final_investment_value_rounded * (die1 * 0.1)
+            elif eventroll == 5:
+                adjusted_value == initial_value_rounded
+            elif eventroll == 6:
+                adjusted_value -= (final_investment_value_rounded - initial_value_rounded) / 10  
+            elif eventroll == 8:
+                adjusted_value += (final_investment_value_rounded - initial_value_rounded) / 10      
+            elif eventroll == 9:
+                adjusted_value += (final_investment_value_rounded - initial_value_rounded) * 2  
+            elif eventroll in [10, 11]:
+                adjusted_value += final_investment_value_rounded * (die1 * 0.1)
+            elif eventroll == 12:
+                adjusted_value += final_investment_value_rounded * (die2 * 0.1)
+            
+            final_adjusted_value = round(adjusted_value)
+
+            embed.add_field(name=event[0] , value=event[1], inline=False)
+            embed.add_field(name="Adjusted value" , value=f"{adjusted_value}Cr", inline=False)
+
         await interaction.response.send_message(embed=embed)            
 
-    else:
-        #User does not have the required role, send a message indicating access denied
-        await interaction.response.send_message("Error: You lack staff access to use that function.")
-
-
-
-#Below is the investment command
-@client.tree.command()
-async def investevent(interaction: discord.Interaction):
-    #Check if the user has the required role
-    required_role_name = "Administrator"
-    required_role = discord.utils.get(interaction.guild.roles, name=required_role_name)
-    if required_role in interaction.user.roles:
-        #User has the required role, proceed with the command
-
-        die1 = random.randint(1,6)
-        die2 = (random.randint(1,6)+random.randint(1,6))
-        events = {
-            2: ["📉 Catastrophe! 📉", f'Natural disaster wipes {die2*10}% from the value of an estate or property. If this reduces it to zero the holding is utterly destroyed.'],
-            3: ["📉 Market Crash! 📉", f'All the businesses, pensions, stipends and stocks in a portfolio lose {die1*10}% of their value.'],
-            4: ["📉 Military Posturing 📉", f'An impending war threatens the material basis of one of a portfolios financial assets, which loses {die1*10}% from its value.'],
-            5: ["📉 Insider trading 📉", "Accusations of improper procedures causes the loss of a months income from one financial asset in the portfolio."],
-            6: ["📉 Markets Fall 📉", f'All portfolio income lowered by 10% for a month.'],
-            7: ["Markets stable", "Nothing occurs."],
-            8: ["📈 Markets rise 📈", f'All portfolio income raised by 10% for a month.'],
-            9: ["📈 Bonus Dividends 📈", f'A bumper payout doubles the monthly income of one financial asset in the portfolio.'],
-            10: ["📈 Tax Restructuring 📈", f'The revision of a law category allows one of a portfolios financial assets, to gain {die1*10}% to its value.'],
-            11: ["📈 Market Boom! 📈", f'All the businessses, pensions, stipends and stocks in a portfolio gain {die1*10}% of their value.'],
-            12: ["📈 Trendy! 📈", f'The produce of an estate or location of a property suddenly becomes fashionable, raising the value of the holding by {die2*10}%.']
-        }
-        eventroll = (random.randint(1,6)+random.randint(1,6))
-        event = events[eventroll]
-        die1 = random.randint(1,6)
-        die2 = (random.randint(1,6)+random.randint(1,6))
-        embed_title = "Investment event!"
-        embed_colour = 0x055FFF
-        embed = discord.Embed(color=embed_colour, title=embed_title, description=f'Good luck investor!')
-        embed.add_field(name=event[0] , value=event[1], inline=False)
-        await interaction.response.send_message(embed=embed)
     else:
         #User does not have the required role, send a message indicating access denied
         await interaction.response.send_message("Error: You lack staff access to use that function.")
