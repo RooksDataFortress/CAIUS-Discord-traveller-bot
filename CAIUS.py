@@ -635,4 +635,61 @@ async def tradedms(interaction: discord.Interaction, system: str):
         #User does not have the required role, send a message indicating access denied
         await interaction.response.send_message("Error: You lack staff access to use that function.")
 
+##TESTING
+@client.tree.command()
+async def adventuregenerator(interaction: discord.Interaction):
+    def generate_location():
+        environments = ["Space Station", "Desert World", "Ocean Planet", "Gas Giant Moon", 
+                    "Asteroid Belt", "Jungle World", "Ice Planet", "Volcanic World"]
+        adjectives = ["Abandoned", "Contested", "Remote", "Strategic", "Ancient", "Mysterious",
+                    "Damaged", "Restricted"]
+        return f"{random.choice(adjectives)} {random.choice(environments)}"
+
+    def generate_conflict():
+        antagonists = ["Corporate Mercenaries", "Alien Artifacts", "Religious Cultists", 
+                    "Rogue AI", "Space Pirates", "Local Government", "Criminal Syndicate",
+                    "Ancient Defense Systems"]
+        situations = ["are secretly controlling", "are sabotaging", "are stealing from",
+                    "are infiltrating", "are threatening", "are experimenting on",
+                    "are destroying", "have discovered"]
+        targets = ["vital resources", "local population", "communication systems",
+                "defense networks", "trade routes", "colonial infrastructure",
+                "scientific research", "ancient technology"]
+        return f"{random.choice(antagonists)} {random.choice(situations)} {random.choice(targets)}"
+
+    def generate_complication():
+        complications = [
+            "Time is running out before catastrophic failure",
+            "A powerful noble family is involved",
+            "The local population is hiding something",
+            "Two factions are about to go to war",
+            "A deadly disease is spreading",
+            "Key evidence has been destroyed",
+            "Systems are failing mysteriously",
+            "Someone important has gone missing"
+        ]
+        return random.choice(complications)
+
+    def generate_hook():
+        hooks = [
+            "The players' ship picks up a distress signal",
+            "A mysterious benefactor offers a lucrative contract",
+            "Local authorities request emergency assistance",
+            "An old friend calls in a favor",
+            "A valuable cargo needs urgent transport",
+            "A rival challenges the players' reputation",
+            "An unexpected discovery requires investigation",
+            "A routine job goes terribly wrong"
+        ]
+        return random.choice(hooks)
+    #define embed
+    embed_title = f'Adventure generator'
+    embed_colour = 0x055FFF
+    embed = discord.Embed(color=embed_colour, title=embed_title, description="")
+    embed.add_field(name=(f'Location'), inline=False , value={generate_location()})
+    embed.add_field(name=(f'Hook'), inline=False , value={generate_hook()})
+    embed.add_field(name=(f'Conflict'), inline=False , value={generate_conflict()})
+    embed.add_field(name=(f'Complication'), inline=False , value={generate_complication()})
+    await interaction.response.send_message(embed=embed)
+
 client.run(token)

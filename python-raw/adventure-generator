@@ -1,0 +1,77 @@
+import random
+
+def generate_location():
+    environments = ["Space Station", "Desert World", "Ocean Planet", "Gas Giant Moon", 
+                   "Asteroid Belt", "Jungle World", "Ice Planet", "Volcanic World"]
+    adjectives = ["Abandoned", "Contested", "Remote", "Strategic", "Ancient", "Mysterious",
+                 "Damaged", "Restricted"]
+    return f"{random.choice(adjectives)} {random.choice(environments)}"
+
+def generate_conflict():
+    antagonists = ["Corporate Mercenaries", "Alien Artifacts", "Religious Cultists", 
+                  "Rogue AI", "Space Pirates", "Local Government", "Criminal Syndicate",
+                  "Ancient Defense Systems"]
+    situations = ["are secretly controlling", "are sabotaging", "are stealing from",
+                 "are infiltrating", "are threatening", "are experimenting on",
+                 "are destroying", "have discovered"]
+    targets = ["vital resources", "local population", "communication systems",
+              "defense networks", "trade routes", "colonial infrastructure",
+              "scientific research", "ancient technology"]
+    return f"{random.choice(antagonists)} {random.choice(situations)} {random.choice(targets)}"
+
+def generate_complication():
+    complications = [
+        "Time is running out before catastrophic failure",
+        "A powerful noble family is involved",
+        "The local population is hiding something",
+        "Two factions are about to go to war",
+        "A deadly disease is spreading",
+        "Key evidence has been destroyed",
+        "Systems are failing mysteriously",
+        "Someone important has gone missing"
+    ]
+    return random.choice(complications)
+
+def generate_hook():
+    hooks = [
+        "The players' ship picks up a distress signal",
+        "A mysterious benefactor offers a lucrative contract",
+        "Local authorities request emergency assistance",
+        "An old friend calls in a favor",
+        "A valuable cargo needs urgent transport",
+        "A rival challenges the players' reputation",
+        "An unexpected discovery requires investigation",
+        "A routine job goes terribly wrong"
+    ]
+    return random.choice(hooks)
+
+def generate_adventure():
+    return f"""
+TRAVELLER ADVENTURE SEED
+
+LOCATION:
+{generate_location()}
+
+INITIAL HOOK:
+{generate_hook()}
+
+CORE CONFLICT:
+{generate_conflict()}
+
+COMPLICATION:
+{generate_complication()}
+
+POTENTIAL REWARDS:
+- Credits
+- Rare technology
+- Valuable information
+- Political favors
+- Ship upgrades
+- Trade connections
+"""
+
+# Generate three different adventure seeds
+for i in range(3):
+    print(f"\nADVENTURE OPTION {i+1}:")
+    print(generate_adventure())
+    print("-" * 50)
