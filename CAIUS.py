@@ -8,10 +8,12 @@ import time
 import requests
 import json
 from uwpdata import *
-import wget
 from sectordata import *
 from tradecalc import *
 import pymongo
+#Test
+from SlotMachine import SlotMachine
+###
 
 #Configure the database
 client = pymongo.MongoClient()
@@ -635,7 +637,6 @@ async def tradedms(interaction: discord.Interaction, system: str):
         #User does not have the required role, send a message indicating access denied
         await interaction.response.send_message("Error: You lack staff access to use that function.")
 
-##TESTING
 @client.tree.command()
 async def adventuregenerator(interaction: discord.Interaction):
     def generate_location():
@@ -692,4 +693,39 @@ async def adventuregenerator(interaction: discord.Interaction):
     embed.add_field(name=(f'Complication'), inline=False , value={generate_complication()})
     await interaction.response.send_message(embed=embed)
 
+#TEST ZONE#
+@client.tree.command()
+@app_commands.describe(bet='Desired betting amount.')
+async def gamble_slots(interaction: discord.Interaction, bet: int):
+
+    def play_slot(bet_amount):    
+        machine = SlotMachine()
+        grid, winnings = machine.single_spin(bet_amount)
+        return grid, winnings
+
+    def format_grid(grid):
+        rows = []
+        for row in grid:
+            rows.append(' '.join(row))
+        return '\n'.join(rows)
+
+    grid, winnings = play_slot(bet)
+    
+    # Format grid for Discord message
+    grid_display = "```\n" + format_grid(grid) + "\n```"
+
+    if winnings > 0:
+        Result=(f"Congratulations! You won {winnings}Cr!")
+    else:
+        Result=(f"Sorry, you lost {bet}Cr. Try again!")
+
+    embed_title = f'Slot Machine!'
+    embed_colour = 0x055FFF
+    embed = discord.Embed(color=embed_colour, title=embed_title, description="Trying your luck on the slot machine. This feature is not yet finished.")
+    embed.add_field(name=(f'Betting'), inline=False , value=bet)
+    embed.add_field(name='Your Spin', value=grid_display, inline=False)
+    embed.add_field(name=(f'Outcome'), inline=False , value=Result)    
+    await interaction.response.send_message(embed=embed)
+
+###########
 client.run(token)
