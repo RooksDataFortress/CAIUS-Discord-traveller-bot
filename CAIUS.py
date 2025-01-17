@@ -698,6 +698,20 @@ async def adventuregenerator(interaction: discord.Interaction):
 @client.tree.command()
 @app_commands.describe(bet='Desired betting amount.')
 async def gamble_slots(interaction: discord.Interaction, bet: int):
+    # Get user balance
+    balancecollection = db.gamblebooks
+    user_id = interaction.user.id
+    username = interaction.user.name
+    
+    user_doc = balancecollection.find_one({"user_id": user_id})
+    if not user_doc:
+        await interaction.response.send_message("You need to create an account first! Use /gamble_balance to add funds.")
+        return
+        
+    current_balance = user_doc.get("balance", 0)
+    if current_balance < bet:
+        await interaction.response.send_message(f"Insufficient funds! Your balance is {current_balance}Cr")
+        return
 
     def play_slot(bet_amount):    
         machine = SlotMachine()
@@ -712,20 +726,40 @@ async def gamble_slots(interaction: discord.Interaction, bet: int):
 
     grid, winnings = play_slot(bet)
     
+    # Update balance in MongoDB
+    new_balance = current_balance - bet + winnings
+    balancecollection.update_one(
+        {"user_id": user_id},
+        {"$set": {
+            "balance": new_balance,
+            "last_updated": datetime.datetime.now()
+        }}
+    )
+    
     # Format grid for Discord message
     grid_display = "```\n" + format_grid(grid) + "\n```"
 
     if winnings > 0:
-        Result=(f"Congratulations! You won {winnings}Cr!")
+        Result=(f"Congratulations! You won {winnings}Cr!\nNew balance: {new_balance}Cr")
+        # Check for jackpot (5x bet)
+        if winnings >= (bet * 5):
+            jackpot_message = "💸 JACKPOT! 💸"
     else:
-        Result=(f"Sorry, you lost {bet}Cr. Try again!")
+        Result=(f"Sorry, you lost {bet}Cr.\nNew balance: {new_balance}Cr")
 
     embed_title = f'Slot Machine!'
     embed_colour = 0x055FFF
-    embed = discord.Embed(color=embed_colour, title=embed_title, description="Trying your luck on the slot machine. This feature is not yet finished.")
-    embed.add_field(name=(f'Betting'), inline=False , value=bet)
+    embed = discord.Embed(color=embed_colour, title=embed_title)
+    embed = discord.Embed(color=embed_colour, title=embed_title, description="Make the fruit dance baby!")
+    embed.add_field(name="Player", value=username, inline=False)
+    embed.add_field(name=(f'Bet'), inline=False, value=f"{bet}Cr")
     embed.add_field(name='Your Spin', value=grid_display, inline=False)
-    embed.add_field(name=(f'Outcome'), inline=False , value=Result)    
+    embed.add_field(name=(f'Outcome'), inline=False, value=Result)
+    
+    # Add jackpot field if applicable
+    if winnings >= (bet * 5):
+        embed.add_field(name="💰💰💰💰💰", value=jackpot_message, inline=False)
+    
     await interaction.response.send_message(embed=embed)
 
 #TEST ZONE#

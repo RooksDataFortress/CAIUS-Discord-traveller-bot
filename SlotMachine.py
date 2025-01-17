@@ -5,12 +5,13 @@ class SlotMachine:
     def __init__(self):            
         # Tuple of (symbol, weight)
         self.symbol_weights = [
-            ('🍎', 10),
-            ('🍊', 10),
-            ('🍋', 10),
-            ('🍇', 10),
-            ('🍒', 10),
-            ('7️⃣', 5)  # Rare symbol with low weight
+            ('🍎', 40),
+            ('🍊', 40),
+            ('🍋', 40),
+            ('🍇', 40),
+            ('🍒', 40),
+            ('7️⃣', 20),  # Rare symbol with low weight
+            ('💎', 1)   # Super rare diamond
         ]
         self.symbols = [s[0] for s in self.symbol_weights]
         self.weights = [s[1] for s in self.symbol_weights]
@@ -32,10 +33,13 @@ class SlotMachine:
     def _calculate_winnings(self, bet):
         winnings = 0
         
+        # Count diamonds for bonus
+        diamond_count = sum(row.count('💎') for row in self.grid)
+        winnings += diamond_count * (bet * 5)
+        
         # Check rows
         for row in self.grid:
             if len(set(row)) == 1:
-                # Higher multiplier for 7s
                 if row[0] == '7️⃣':
                     winnings += bet * 10
                 else:
