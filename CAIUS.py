@@ -4,6 +4,7 @@ import discord
 from discord import app_commands
 import sys
 import random
+import datetime
 import time
 import requests
 import json
@@ -693,7 +694,7 @@ async def adventuregenerator(interaction: discord.Interaction):
     embed.add_field(name=(f'Complication'), inline=False , value={generate_complication()})
     await interaction.response.send_message(embed=embed)
 
-#TEST ZONE#
+
 @client.tree.command()
 @app_commands.describe(bet='Desired betting amount.')
 async def gamble_slots(interaction: discord.Interaction, bet: int):
@@ -727,5 +728,51 @@ async def gamble_slots(interaction: discord.Interaction, bet: int):
     embed.add_field(name=(f'Outcome'), inline=False , value=Result)    
     await interaction.response.send_message(embed=embed)
 
+#TEST ZONE#
+@client.tree.command()
+@app_commands.describe(amount='Amount of money to add or remove from gambling account')
+async def gamble_balance(interaction: discord.Interaction, amount: int):
+    #Set db endpoints
+    balancecollection = db.gamblebooks
+
+    # Get user info
+    username = interaction.user.name
+    user_id = interaction.user.id
+    
+    # Check if user exists and get balance
+    user_doc = balancecollection.find_one({"user_id": user_id})
+    
+    if user_doc:
+        current_balance = user_doc.get("balance", 0)
+    else:
+        current_balance = 0
+        
+    # Calculate new balance
+    new_balance = current_balance + amount
+    
+    # Prepare data for update
+    data = {
+        "user_id": user_id,
+        "username": username,
+        "balance": new_balance,
+        "last_updated": datetime.datetime.now()
+    }
+    
+    # Update or create user document
+    balancecollection.update_one(
+        {"user_id": user_id},
+        {"$set": data},
+        upsert=True
+    )
+    
+    # Create response embed
+    embed_title = "Balance Update"
+    embed_colour = 0x055FFF
+    embed = discord.Embed(color=embed_colour, title=embed_title)
+    embed.add_field(name="Player", value=username, inline=False)
+    embed.add_field(name="Adjustment", value=f"{amount:,}Cr", inline=False)
+    embed.add_field(name="New Balance", value=f"{new_balance:,}Cr", inline=False)
+    embed.add_field(name="Transaction Complete", value=f"Thankyou for banking with GambleNet Systems Incorporated.", inline=False)    
+    await interaction.response.send_message(embed=embed)
 ###########
 client.run(token)
