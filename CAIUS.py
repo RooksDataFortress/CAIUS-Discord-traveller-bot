@@ -11,12 +11,11 @@ import json
 from Scripts.uwpdata import *
 from Scripts.sectordata import *
 from Scripts.tradecalc import *
-import pymongo
-#Test
+import pymongo # type: ignore
 from Scripts.slotmachine import slotmachine
 from Scripts.gamblebalance import update_gambling_balance
-
-###
+from Scripts.roulette import roulette
+from Scripts.beetlerace import BeetleRace
 
 #Configure the database
 client = pymongo.MongoClient()
@@ -696,7 +695,6 @@ async def adventuregenerator(interaction: discord.Interaction):
     embed.add_field(name=(f'Complication'), inline=False , value={generate_complication()})
     await interaction.response.send_message(embed=embed)
 
-
 @client.tree.command()
 @app_commands.describe(bet='Desired betting amount.')
 async def gamble_slots(interaction: discord.Interaction, bet: int):
@@ -709,12 +707,19 @@ async def gamble_slots(interaction: discord.Interaction, bet: int):
     if not user_doc:
         await interaction.response.send_message("You need to create an account first! Use /gamble_balance to add funds.")
         return
-        
+    
     current_balance = user_doc.get("balance", 0)
-    if current_balance < bet:
-        await interaction.response.send_message(f"Insufficient funds! Your balance is {current_balance}Cr")
+    bonus_balance = user_doc.get("bonus_balance", 0)
+    total_available = current_balance + bonus_balance
+    
+    if total_available < bet:
+        await interaction.response.send_message(f"Insufficient funds! Your balance is {current_balance}Cr (Bonus: {bonus_balance}Cr)")
         return
 
+    # Calculate how much to take from each balance
+    from_bonus = min(bonus_balance, bet)
+    from_balance = bet - from_bonus
+    
     def play_slot(bet_amount):    
         machine = slotmachine()
         grid, winnings = machine.single_spin(bet_amount)
@@ -728,43 +733,43 @@ async def gamble_slots(interaction: discord.Interaction, bet: int):
 
     grid, winnings = play_slot(bet)
     
-    # Update balance in MongoDB
-    new_balance = current_balance - bet + winnings
+    # Update balances in MongoDB
+    new_bonus = bonus_balance - from_bonus
+    new_balance = current_balance - from_balance + winnings
+    
     balancecollection.update_one(
         {"user_id": user_id},
         {"$set": {
             "balance": new_balance,
+            "bonus_balance": new_bonus,
             "last_updated": datetime.datetime.now()
         }}
     )
     
     # Format grid for Discord message
     grid_display = "```\n" + format_grid(grid) + "\n```"
+    jackpot_message = None
 
     if winnings > 0:
-        Result=(f"Congratulations! You won {winnings}Cr!\nNew balance: {new_balance}Cr")
-        # Check for jackpot (5x bet)
-        if winnings >= (bet * 6):
+        Result=(f"Congratulations! You won {winnings}Cr!\nMain balance: {new_balance}Cr\nBonus balance: {new_bonus}Cr")
+        if winnings >= (bet * 5.1):
             jackpot_message = "💸 JACKPOT! 💸"
     else:
-        Result=(f"Sorry, you lost {bet}Cr.\nNew balance: {new_balance}Cr")
+        Result=(f"Sorry, you lost {bet}Cr.\nMain balance: {new_balance}Cr\nBonus balance: {new_bonus}Cr")
 
     embed_title = f'Slot Machine!'
     embed_colour = 0x055FFF
-    embed = discord.Embed(color=embed_colour, title=embed_title)
     embed = discord.Embed(color=embed_colour, title=embed_title, description="Make the fruit dance baby!")
     embed.add_field(name="Player", value=username, inline=False)
-    embed.add_field(name=(f'Bet'), inline=False, value=f"{bet}Cr")
+    embed.add_field(name="Bet", inline=False, value=f"{bet}Cr (Bonus: {from_bonus}Cr, Main: {from_balance}Cr)")
     embed.add_field(name='Your Spin', value=grid_display, inline=False)
-    embed.add_field(name=(f'Outcome'), inline=False, value=Result)
+    embed.add_field(name='Outcome', inline=False, value=Result)
     
-    # Add jackpot field if applicable
-    if winnings >= (bet * 5):
+    if jackpot_message:
         embed.add_field(name="💰💰💰💰💰", value=jackpot_message, inline=False)
     
     await interaction.response.send_message(embed=embed)
 
-#TEST ZONE#
 @client.tree.command()
 @app_commands.describe(
     amount='Amount of money to add or remove from gambling account',
@@ -790,5 +795,175 @@ async def gamble_balance(interaction: discord.Interaction, amount: int, gambling
     embed.add_field(name="Bonus Balance", value=f"{new_bonus:,}Cr", inline=False)
     
     await interaction.response.send_message(embed=embed)
-###########
+
+@client.tree.command()
+@app_commands.describe(
+    bet='Amount to bet',
+    selection='What to bet on (0-36, red/black, odd/even)'
+)
+async def gamble_roulette(
+    interaction: discord.Interaction, 
+    bet: int,
+    selection: str
+):
+    # Get user balance and validate
+    balancecollection = db.gamblebooks
+    user_id = interaction.user.id
+    username = interaction.user.name
+    
+    user_doc = balancecollection.find_one({"user_id": user_id})
+    if not user_doc:
+        await interaction.response.send_message("You need to create an account first! Use /gamble_balance to add funds.")
+        return
+    
+    current_balance = user_doc.get("balance", 0)
+    bonus_balance = user_doc.get("bonus_balance", 0)
+    total_available = current_balance + bonus_balance
+    
+    if total_available < bet:
+        await interaction.response.send_message(f"Insufficient funds! Your balance is {current_balance}Cr (Bonus: {bonus_balance}Cr)")
+        return
+
+    # Calculate how much to take from each balance
+    from_bonus = min(bonus_balance, bet)
+    from_balance = bet - from_bonus
+
+   # Determine bet type and value
+    selection = selection.lower()
+    if selection.replace(' ', '').replace(',', '').isdigit():
+        numbers = [int(n.strip()) for n in selection.split(',')]
+        invalid_numbers = [n for n in numbers if n not in range(37)]
+        if invalid_numbers:
+            await interaction.response.send_message(f"Invalid numbers: {invalid_numbers}! Please choose 0-36")
+            return
+            
+        bet_type = 'number'
+        bet_value = numbers
+        # Adjust bet amount per number
+        bet_per_number = bet // len(numbers)
+    elif selection in ['red', 'black']:
+        bet_type = 'color'
+        bet_value = '🔴' if selection == 'red' else '⚫'
+    elif selection in ['odd', 'even']:
+        bet_type = 'odd_even'
+        bet_value = selection
+    else:
+        await interaction.response.send_message("Invalid selection! Please use:\n- Numbers (0-36, comma separated)\n- Color (red/black)\n- odd/even")
+        return
+
+    # Process bet
+    game = roulette()
+    if bet_type == 'number' and isinstance(bet_value, list):
+        total_winnings = 0
+        for number in bet_value:
+            _, _, number_winnings = game.spin(bet_per_number, bet_type, number)
+            total_winnings += number_winnings
+        result_number, result_color, _ = game.spin(0, bet_type, 0)  # Just to get final result
+        winnings = total_winnings
+    else:
+        result_number, result_color, winnings = game.spin(bet, bet_type, bet_value)
+
+    # Update balances in MongoDB
+    new_bonus = bonus_balance - from_bonus
+    new_balance = current_balance - from_balance + winnings
+
+    balancecollection.update_one(
+        {"user_id": user_id},
+        {"$set": {
+            "balance": new_balance,
+            "bonus_balance": new_bonus,
+            "last_updated": datetime.datetime.now()
+        }}
+    )
+
+    embed = discord.Embed(color=0x055FFF, title="Roulette Table", description="Spin that wheel!")
+    embed.add_field(name="Player", value=username, inline=False)
+    embed.add_field(name="Bet", value=f"{bet}Cr on {selection}", inline=False)
+    embed.add_field(name="Result", value=f"Number: {result_number} {result_color}", inline=False)
+    
+    if winnings > 0:
+        result_text = f"Congratulations! You won {winnings}Cr!\nMain balance: {new_balance}Cr\nBonus balance: {new_bonus}Cr"
+    else:
+        result_text = f"Sorry, you lost {bet}Cr.\nMain balance: {new_balance}Cr\nBonus balance: {new_bonus}Cr"
+    
+    embed.add_field(name="Outcome", value=result_text, inline=False)
+    await interaction.response.send_message(embed=embed)
+
+@client.tree.command()
+@app_commands.describe(
+    bet='Amount to bet',
+    beetle='Beetle color to bet on (red/green/blue/yellow/purple)'
+)
+async def gamble_beetles(interaction: discord.Interaction, bet: int, beetle: str):
+    # Get user balance
+    balancecollection = db.gamblebooks
+    user_id = interaction.user.id
+    username = interaction.user.name
+    
+    user_doc = balancecollection.find_one({"user_id": user_id})
+    if not user_doc:
+        await interaction.response.send_message("You need to create an account first! Use /gamble_balance to add funds.")
+        return
+    
+    current_balance = user_doc.get("balance", 0)
+    bonus_balance = user_doc.get("bonus_balance", 0)
+    total_available = current_balance + bonus_balance
+    
+    if total_available < bet:
+        await interaction.response.send_message(f"Insufficient funds! Your balance is {current_balance}Cr (Bonus: {bonus_balance}Cr)")
+        return
+
+    # Calculate how much to take from each balance
+    from_bonus = min(bonus_balance, bet)
+    from_balance = bet - from_bonus
+
+    # Initialize race
+    race = BeetleRace()
+    
+    # Validate beetle selection
+    beetle = beetle.lower()
+    valid_colors = ['red', 'green', 'blue', 'yellow', 'purple']
+    if beetle not in valid_colors:
+        await interaction.response.send_message(f"Invalid beetle color! Please choose from: {', '.join(valid_colors)}")
+        return
+
+    # Run race and get results
+    winner, race_log = race.run_race()
+    
+    # Calculate winnings
+    winnings = race.calculate_winnings(bet, beetle, winner)
+    
+    # Update balances in MongoDB
+    new_bonus = bonus_balance - from_bonus
+    new_balance = current_balance - from_balance + winnings
+    
+    balancecollection.update_one(
+        {"user_id": user_id},
+        {"$set": {
+            "balance": new_balance,
+            "bonus_balance": new_bonus,
+            "last_updated": datetime.datetime.now()
+        }}
+    )
+
+    # Create race display
+    race_display = race.get_race_display(race_log)
+
+    # Create embed response
+    embed = discord.Embed(color=0x055FFF, title="🪲 Beetle Racing! 🪲")
+    embed.add_field(name="Player", value=username, inline=False)
+    embed.add_field(name="Betting", value=f"{bet}Cr on {beetle.title()} Beetle", inline=False)
+    embed.add_field(name="Race Odds", value=race.get_odds_display(), inline=False)
+    embed.add_field(name="Race Progress", value=race_display, inline=False)
+    embed.add_field(name="Winner", value=f"{winner.color} {winner.name}! 🏆", inline=False)
+    
+    if winnings > 0:
+        result = f"Congratulations! You won {winnings}Cr!\nMain balance: {new_balance}Cr\nBonus balance: {new_bonus}Cr"
+    else:
+        result = f"Sorry, you lost {bet}Cr.\nMain balance: {new_balance}Cr\nBonus balance: {new_bonus}Cr"
+    
+    embed.add_field(name="Outcome", value=result, inline=False)
+    
+    await interaction.response.send_message(embed=embed)
+
 client.run(token)
