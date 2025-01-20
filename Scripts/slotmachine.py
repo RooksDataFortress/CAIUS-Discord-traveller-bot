@@ -1,7 +1,7 @@
 import random
 import platform
 
-class SlotMachine:
+class slotmachine:
     def __init__(self):            
         # Tuple of (symbol, weight)
         self.symbol_weights = [

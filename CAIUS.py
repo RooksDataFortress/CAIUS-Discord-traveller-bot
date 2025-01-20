@@ -8,12 +8,14 @@ import datetime
 import time
 import requests
 import json
-from uwpdata import *
-from sectordata import *
-from tradecalc import *
+from Scripts.uwpdata import *
+from Scripts.sectordata import *
+from Scripts.tradecalc import *
 import pymongo
 #Test
-from SlotMachine import SlotMachine
+from Scripts.slotmachine import slotmachine
+from Scripts.gamblebalance import update_gambling_balance
+
 ###
 
 #Configure the database
@@ -714,7 +716,7 @@ async def gamble_slots(interaction: discord.Interaction, bet: int):
         return
 
     def play_slot(bet_amount):    
-        machine = SlotMachine()
+        machine = slotmachine()
         grid, winnings = machine.single_spin(bet_amount)
         return grid, winnings
 
@@ -742,7 +744,7 @@ async def gamble_slots(interaction: discord.Interaction, bet: int):
     if winnings > 0:
         Result=(f"Congratulations! You won {winnings}Cr!\nNew balance: {new_balance}Cr")
         # Check for jackpot (5x bet)
-        if winnings >= (bet * 5):
+        if winnings >= (bet * 6):
             jackpot_message = "💸 JACKPOT! 💸"
     else:
         Result=(f"Sorry, you lost {bet}Cr.\nNew balance: {new_balance}Cr")
@@ -764,49 +766,29 @@ async def gamble_slots(interaction: discord.Interaction, bet: int):
 
 #TEST ZONE#
 @client.tree.command()
-@app_commands.describe(amount='Amount of money to add or remove from gambling account')
-async def gamble_balance(interaction: discord.Interaction, amount: int):
-    #Set db endpoints
-    balancecollection = db.gamblebooks
-
-    # Get user info
-    username = interaction.user.name
-    user_id = interaction.user.id
-    
-    # Check if user exists and get balance
-    user_doc = balancecollection.find_one({"user_id": user_id})
-    
-    if user_doc:
-        current_balance = user_doc.get("balance", 0)
-    else:
-        current_balance = 0
-        
-    # Calculate new balance
-    new_balance = current_balance + amount
-    
-    # Prepare data for update
-    data = {
-        "user_id": user_id,
-        "username": username,
-        "balance": new_balance,
-        "last_updated": datetime.datetime.now()
-    }
-    
-    # Update or create user document
-    balancecollection.update_one(
-        {"user_id": user_id},
-        {"$set": data},
-        upsert=True
+@app_commands.describe(
+    amount='Amount of money to add or remove from gambling account',
+    gambling_skill='Your gambling skill level (0-4)'
+)
+async def gamble_balance(interaction: discord.Interaction, amount: int, gambling_skill: int = 0):
+    new_balance, new_bonus, bonus_amount = await update_gambling_balance(
+        db, 
+        interaction.user.id,
+        interaction.user.name,
+        amount,
+        gambling_skill
     )
     
     # Create response embed
-    embed_title = "Balance Update"
-    embed_colour = 0x055FFF
-    embed = discord.Embed(color=embed_colour, title=embed_title)
-    embed.add_field(name="Player", value=username, inline=False)
-    embed.add_field(name="Adjustment", value=f"{amount:,}Cr", inline=False)
-    embed.add_field(name="New Balance", value=f"{new_balance:,}Cr", inline=False)
-    embed.add_field(name="Transaction Complete", value=f"Thankyou for banking with GambleNet Systems Incorporated.", inline=False)    
+    embed = discord.Embed(color=0x055FFF, title="Balance Update")
+    embed.add_field(name="Player", value=interaction.user.name, inline=False)
+    embed.add_field(name="Gambling Skill", value=f"Level {gambling_skill}", inline=False)
+    embed.add_field(name="Deposit Amount", value=f"{amount:,}Cr", inline=False)
+    if bonus_amount > 0:
+        embed.add_field(name="Skill Bonus", value=f"+{bonus_amount:,}Cr", inline=False)
+    embed.add_field(name="Main Balance", value=f"{new_balance:,}Cr", inline=False)
+    embed.add_field(name="Bonus Balance", value=f"{new_bonus:,}Cr", inline=False)
+    
     await interaction.response.send_message(embed=embed)
 ###########
 client.run(token)

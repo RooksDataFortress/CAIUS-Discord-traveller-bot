@@ -1,7 +1,7 @@
 import random
 import requests
 import json
-from sectordata import *
+from .sectordata import *
 
 tradesystem = requests.get("https://travellermap.com/api/search?q=Inthe")
 
