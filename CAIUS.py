@@ -853,15 +853,8 @@ async def gamble_roulette(
 
     # Process bet
     game = roulette()
-    if bet_type == 'number' and isinstance(bet_value, list):
-        total_winnings = 0
-        for number in bet_value:
-            _, _, number_winnings = game.spin(bet_per_number, bet_type, number)
-            total_winnings += number_winnings
-        result_number, result_color, _ = game.spin(0, bet_type, 0)  # Just to get final result
-        winnings = total_winnings
-    else:
-        result_number, result_color, winnings = game.spin(bet, bet_type, bet_value)
+    # Pass full bet amount, don't divide early
+    result_number, result_color, winnings = game.spin(bet, bet_type, bet_value)
 
     # Update balances in MongoDB
     new_bonus = bonus_balance - from_bonus
