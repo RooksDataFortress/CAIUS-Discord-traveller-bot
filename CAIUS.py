@@ -785,7 +785,7 @@ async def gamble_balance(interaction: discord.Interaction, amount: int, gambling
     )
     
     # Create response embed
-    embed = discord.Embed(color=0x055FFF, title="Balance Update")
+    embed = discord.Embed(color=0x055FFF, title="Balance Update", description="Thankyou for using GambleNet Incorporated banking services.")
     embed.add_field(name="Player", value=interaction.user.name, inline=False)
     embed.add_field(name="Gambling Skill", value=f"Level {gambling_skill}", inline=False)
     embed.add_field(name="Deposit Amount", value=f"{amount:,}Cr", inline=False)
