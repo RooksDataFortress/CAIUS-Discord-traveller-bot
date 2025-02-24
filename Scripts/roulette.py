@@ -23,7 +23,11 @@ class roulette:
                 return 0
         elif bet_type == 'color' and bet_value == result_color:
             return bet_amount * 2
-        elif bet_type == 'odd_even' and ((bet_value == 'odd' and result_number % 2 == 1) or 
-                                       (bet_value == 'even' and result_number % 2 == 0)):
-            return bet_amount * 2
+        elif bet_type == 'odd_even':
+            # Zero is neither odd nor even in roulette
+            if result_number == 0:
+                return 0
+            elif (bet_value == 'odd' and result_number % 2 == 1) or \
+                (bet_value == 'even' and result_number % 2 == 0):
+                return bet_amount * 2
         return 0
