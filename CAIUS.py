@@ -217,14 +217,14 @@ async def train_check(interaction: discord.Interaction):
             skill = document.get("train_skill")
             char = document.get("character")
             if leg <= currentleg:
-                trainstats = (trainstats + f'Congrats {char}, Its time to roll your training check for: {skill}{new_line}')
+                trainstats = (trainstats + f'{char}, roll your train check: {skill}{new_line}')
             else:  
-                trainstats = (trainstats + f'Sorry its not your time yet {char}{new_line}')
+                trainstats = (trainstats + f'Not yet {char}{new_line}')
         #configure embed
         embed_title = f'Staff Training status'
         embed_colour = 0x055FFF
         embed = discord.Embed(color=embed_colour, title=embed_title, description="")
-        embed.add_field(name=(f'Current Leg as per our database is {currentleg}'), inline=False , value=f'if incorrect, please alert administration.')
+        embed.add_field(name=(f'Current Leg is {currentleg}'), inline=False , value=f'if incorrect, please alert administration.')
         embed.add_field(name=(f'Staff Training status:'), inline=False , value=trainstats) 
         embed.add_field(name=(f'Is your name missing?'), inline=False , value=f"Please register for the training program.")         
         await interaction.response.send_message(embed=embed)
